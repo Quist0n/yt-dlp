@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import itertools
 import re
 
@@ -182,6 +179,14 @@ class TwitCastingIE(InfoExtractor):
 
             infodict = {
                 'formats': formats
+            }
+        elif len(m3u8_urls) == 1:
+            formats = self._extract_m3u8_formats(
+                m3u8_urls[0], video_id, 'mp4', headers=self._M3U8_HEADERS)
+            self._sort_formats(formats)
+            infodict = {
+                # No problem here since there's only one manifest
+                'formats': formats,
             }
         else:
             infodict = {

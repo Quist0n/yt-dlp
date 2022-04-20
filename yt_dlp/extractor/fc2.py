@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -212,7 +209,6 @@ class FC2LiveIE(InfoExtractor):
             'Accept': '*/*',
             'User-Agent': std_headers['User-Agent'],
         })
-        ws.__enter__()
 
         self.write_debug('[debug] Sending HLS server request')
 

@@ -1,5 +1,4 @@
-# flake8: noqa
-from __future__ import unicode_literals
+# flake8: noqa: F401
 
 from .abc import (
     ABCIE,
@@ -44,6 +43,7 @@ from .aenetworks import (
 from .afreecatv import (
     AfreecaTVIE,
     AfreecaTVLiveIE,
+    AfreecaTVUserIE,
 )
 from .airmozilla import AirMozillaIE
 from .aljazeera import AlJazeeraIE
@@ -122,6 +122,10 @@ from .awaan import (
 )
 from .azmedien import AZMedienIE
 from .baidu import BaiduVideoIE
+from .banbye import (
+    BanByeIE,
+    BanByeChannelIE,
+)
 from .bandaichannel import BandaiChannelIE
 from .bandcamp import (
     BandcampIE,
@@ -318,6 +322,7 @@ from .cpac import (
 from .cozytv import CozyTVIE
 from .cracked import CrackedIE
 from .crackle import CrackleIE
+from .craftsy import CraftsyIE
 from .crooksandliars import CrooksAndLiarsIE
 from .crowdbunker import (
     CrowdBunkerIE,
@@ -340,6 +345,10 @@ from .curiositystream import (
     CuriosityStreamSeriesIE,
 )
 from .cwtv import CWTVIE
+from .cybrary import (
+    CybraryIE,
+    CybraryCourseIE
+)
 from .daftsex import DaftsexIE
 from .dailymail import DailyMailIE
 from .dailymotion import (
@@ -626,6 +635,7 @@ from .hse import (
     HSEProductIE,
 )
 from .huajiao import HuajiaoIE
+from .huya import HuyaLiveIE
 from .huffpost import HuffPostIE
 from .hungama import (
     HungamaIE,
@@ -677,6 +687,12 @@ from .iqiyi import (
     IqIE,
     IqAlbumIE
 )
+
+from .itprotv import (
+    ITProTVIE,
+    ITProTVCourseIE
+)
+
 from .itv import (
     ITVIE,
     ITVBTCCIE,
@@ -688,6 +704,10 @@ from .ivi import (
 from .ivideon import IvideonIE
 from .iwara import IwaraIE
 from .izlesene import IzleseneIE
+from .jable import (
+    JableIE,
+    JablePlaylistIE,
+)
 from .jamendo import (
     JamendoIE,
     JamendoAlbumIE,
@@ -733,6 +753,11 @@ from .laola1tv import (
     Laola1TvIE,
     EHFTVIE,
     ITTFIE,
+)
+from .lastfm import (
+    LastFMIE,
+    LastFMPlaylistIE,
+    LastFMUserIE,
 )
 from .lbry import (
     LBRYIE,
@@ -898,6 +923,7 @@ from .motherless import (
 )
 from .motorsport import MotorsportIE
 from .movieclips import MovieClipsIE
+from .moviepilot import MoviepilotIE
 from .moviezine import MoviezineIE
 from .movingimage import MovingImageIE
 from .msn import MSNIE
@@ -1965,6 +1991,11 @@ from .washingtonpost import (
     WashingtonPostIE,
     WashingtonPostArticleIE,
 )
+from .wasdtv import (
+    WASDTVStreamIE,
+    WASDTVRecordIE,
+    WASDTVClipIE,
+)
 from .wat import WatIE
 from .watchbox import WatchBoxIE
 from .watchindianporn import WatchIndianPornIE
@@ -2072,6 +2103,7 @@ from .youtube import (
     YoutubeIE,
     YoutubeClipIE,
     YoutubeFavouritesIE,
+    YoutubeNotificationsIE,
     YoutubeHistoryIE,
     YoutubeTabIE,
     YoutubeLivestreamEmbedIE,
@@ -2095,18 +2127,17 @@ from .zattoo import (
     EWETVIE,
     GlattvisionTVIE,
     MNetTVIE,
-    MyVisionTVIE,
     NetPlusIE,
     OsnatelTVIE,
     QuantumTVIE,
-    QuicklineIE,
-    QuicklineLiveIE,
     SaltTVIE,
     SAKTVIE,
     VTXTVIE,
     WalyTVIE,
     ZattooIE,
     ZattooLiveIE,
+    ZattooMoviesIE,
+    ZattooRecordingsIE,
 )
 from .zdf import ZDFIE, ZDFChannelIE
 from .zee5 import (
