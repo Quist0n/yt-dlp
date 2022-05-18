@@ -119,7 +119,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
 
     def _parse_config(self, config, video_id):
         video_data = config['video']
-        video_title = video_data['title']
+        video_title = video_data.get('title')
         live_event = video_data.get('live_event') or {}
         is_live = live_event.get('status') == 'started'
         request = config.get('request') or {}
@@ -1333,7 +1333,7 @@ class VimeoReviewIE(VimeoBaseInfoExtractor):
 
 class VimeoWatchLaterIE(VimeoChannelIE):
     IE_NAME = 'vimeo:watchlater'
-    IE_DESC = 'Vimeo watch later list, "vimeowatchlater" keyword (requires authentication)'
+    IE_DESC = 'Vimeo watch later list, ":vimeowatchlater" keyword (requires authentication)'
     _VALID_URL = r'https://vimeo\.com/(?:home/)?watchlater|:vimeowatchlater'
     _TITLE = 'Watch Later'
     _LOGIN_REQUIRED = True
