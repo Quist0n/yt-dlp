@@ -1,7 +1,12 @@
-f'You are using an unsupported version of Python. Only Python versions 3.6 and above are supported by yt-dlp'  # noqa: F541
+try:
+    import contextvars  # noqa: F401
+except Exception:
+    raise Exception(
+        f'You are using an unsupported version of Python. Only Python versions 3.7 and above are supported by yt-dlp')  # noqa: F541
 
 __license__ = 'Public Domain'
 
+import collections
 import getpass
 import itertools
 import optparse
@@ -19,6 +24,8 @@ from .extractor.common import InfoExtractor
 from .options import parseOpts
 from .postprocessor import (
     FFmpegExtractAudioPP,
+    FFmpegMergerPP,
+    FFmpegPostProcessor,
     FFmpegSubtitlesConvertorPP,
     FFmpegThumbnailsConvertorPP,
     FFmpegVideoConvertorPP,
@@ -55,6 +62,8 @@ from .utils import (
     write_string,
 )
 from .YoutubeDL import YoutubeDL
+
+_IN_CLI = False
 
 
 def _exit(status=0, *args):
@@ -221,6 +230,8 @@ def validate_options(opts):
         validate_regex('format sorting', f, InfoExtractor.FormatSort.regex)
 
     # Postprocessor formats
+    validate_regex('merge output format', opts.merge_output_format,
+                   r'({0})(/({0}))*'.format('|'.join(map(re.escape, FFmpegMergerPP.SUPPORTED_EXTS))))
     validate_regex('audio format', opts.audioformat, FFmpegExtractAudioPP.FORMAT_RE)
     validate_in('subtitle format', opts.convertsubtitles, FFmpegSubtitlesConvertorPP.SUPPORTED_EXTS)
     validate_regex('thumbnail format', opts.convertthumbnails, FFmpegThumbnailsConvertorPP.FORMAT_RE)
@@ -315,14 +326,15 @@ def validate_options(opts):
 
     def parse_chapters(name, value):
         chapters, ranges = [], []
+        parse_timestamp = lambda x: float('inf') if x in ('inf', 'infinite') else parse_duration(x)
         for regex in value or []:
             if regex.startswith('*'):
-                for range in regex[1:].split(','):
-                    dur = tuple(map(parse_duration, range.strip().split('-')))
-                    if len(dur) == 2 and all(t is not None for t in dur):
-                        ranges.append(dur)
-                    else:
+                for range_ in map(str.strip, regex[1:].split(',')):
+                    mobj = range_ != '-' and re.fullmatch(r'([^-]+)?\s*-\s*([^-]+)?', range_)
+                    dur = mobj and (parse_timestamp(mobj.group(1) or '0'), parse_timestamp(mobj.group(2) or 'inf'))
+                    if None in (dur or [None]):
                         raise ValueError(f'invalid {name} time range "{regex}". Must be of the form *start-end')
+                    ranges.append(dur)
                 continue
             try:
                 chapters.append(re.compile(regex))
@@ -335,10 +347,16 @@ def validate_options(opts):
 
     # Cookies from browser
     if opts.cookiesfrombrowser:
-        mobj = re.match(r'(?P<name>[^+:]+)(\s*\+\s*(?P<keyring>[^:]+))?(\s*:(?P<profile>.+))?', opts.cookiesfrombrowser)
+        container = None
+        mobj = re.fullmatch(r'''(?x)
+            (?P<name>[^+:]+)
+            (?:\s*\+\s*(?P<keyring>[^:]+))?
+            (?:\s*:\s*(?P<profile>.+?))?
+            (?:\s*::\s*(?P<container>.+))?
+        ''', opts.cookiesfrombrowser)
         if mobj is None:
             raise ValueError(f'invalid cookies from browser arguments: {opts.cookiesfrombrowser}')
-        browser_name, keyring, profile = mobj.group('name', 'keyring', 'profile')
+        browser_name, keyring, profile, container = mobj.group('name', 'keyring', 'profile', 'container')
         browser_name = browser_name.lower()
         if browser_name not in SUPPORTED_BROWSERS:
             raise ValueError(f'unsupported browser specified for cookies: "{browser_name}". '
@@ -348,7 +366,7 @@ def validate_options(opts):
             if keyring not in SUPPORTED_KEYRINGS:
                 raise ValueError(f'unsupported keyring specified for cookies: "{keyring}". '
                                  f'Supported keyrings are: {", ".join(sorted(SUPPORTED_KEYRINGS))}')
-        opts.cookiesfrombrowser = (browser_name, profile, keyring)
+        opts.cookiesfrombrowser = (browser_name, profile, keyring, container)
 
     # MetadataParser
     def metadataparser_actions(f):
@@ -392,6 +410,9 @@ def validate_options(opts):
 
     if opts.download_archive is not None:
         opts.download_archive = expand_path(opts.download_archive)
+
+    if opts.ffmpeg_location is not None:
+        opts.ffmpeg_location = expand_path(opts.ffmpeg_location)
 
     if opts.user_agent is not None:
         opts.headers.setdefault('User-Agent', opts.user_agent)
@@ -468,7 +489,7 @@ def validate_options(opts):
                     val1=opts.sponskrub and opts.sponskrub_cut)
 
     # Conflicts with --allow-unplayable-formats
-    report_conflict('--add-metadata', 'addmetadata')
+    report_conflict('--embed-metadata', 'addmetadata')
     report_conflict('--embed-chapters', 'addchapters')
     report_conflict('--embed-info-json', 'embed_infojson')
     report_conflict('--embed-subs', 'embedsubtitles')
@@ -516,7 +537,7 @@ def validate_options(opts):
         # Do not unnecessarily download audio
         opts.format = 'bestaudio/best'
 
-    if opts.getcomments and opts.writeinfojson is None:
+    if opts.getcomments and opts.writeinfojson is None and not opts.embed_infojson:
         # If JSON is not printed anywhere, but comments are requested, save it to file
         if not opts.dumpjson or opts.print_json or opts.dump_single_json:
             opts.writeinfojson = True
@@ -665,8 +686,11 @@ def get_postprocessors(opts):
         }
 
 
+ParsedOptions = collections.namedtuple('ParsedOptions', ('parser', 'options', 'urls', 'ydl_opts'))
+
+
 def parse_options(argv=None):
-    """ @returns (parser, opts, urls, ydl_opts) """
+    """@returns ParsedOptions(parser, opts, urls, ydl_opts)"""
     parser, opts, urls = parseOpts(argv)
     urls = get_urls(urls, opts.batchfile, opts.verbose)
 
@@ -684,13 +708,28 @@ def parse_options(argv=None):
         'getformat', 'getid', 'getthumbnail', 'gettitle', 'geturl'
     ))
 
+    playlist_pps = [pp for pp in postprocessors if pp.get('when') == 'playlist']
+    write_playlist_infojson = (opts.writeinfojson and not opts.clean_infojson
+                               and opts.allow_playlist_files and opts.outtmpl.get('pl_infojson') != '')
+    if not any((
+        opts.extract_flat,
+        opts.dump_single_json,
+        opts.forceprint.get('playlist'),
+        opts.print_to_file.get('playlist'),
+        write_playlist_infojson,
+    )):
+        if not playlist_pps:
+            opts.extract_flat = 'discard'
+        elif playlist_pps == [{'key': 'FFmpegConcat', 'only_multi_video': True, 'when': 'playlist'}]:
+            opts.extract_flat = 'discard_in_playlist'
+
     final_ext = (
         opts.recodevideo if opts.recodevideo in FFmpegVideoConvertorPP.SUPPORTED_EXTS
         else opts.remuxvideo if opts.remuxvideo in FFmpegVideoRemuxerPP.SUPPORTED_EXTS
         else opts.audioformat if (opts.extractaudio and opts.audioformat in FFmpegExtractAudioPP.SUPPORTED_EXTS)
         else None)
 
-    return parser, opts, urls, {
+    return ParsedOptions(parser, opts, urls, {
         'usenetrc': opts.usenetrc,
         'netrc_location': opts.netrc_location,
         'username': opts.username,
@@ -739,6 +778,7 @@ def parse_options(argv=None):
         'windowsfilenames': opts.windowsfilenames,
         'ignoreerrors': opts.ignoreerrors,
         'force_generic_extractor': opts.force_generic_extractor,
+        'allowed_extractors': opts.allowed_extractors or ['default'],
         'ratelimit': opts.ratelimit,
         'throttledratelimit': opts.throttledratelimit,
         'overwrites': opts.overwrites,
@@ -863,7 +903,7 @@ def parse_options(argv=None):
         '_warnings': warnings,
         '_deprecation_warnings': deprecation_warnings,
         'compat_opts': opts.compat_opts,
-    }
+    })
 
 
 def _real_main(argv=None):
@@ -879,6 +919,11 @@ def _real_main(argv=None):
 
     if print_extractor_information(opts, all_urls):
         return
+
+    # We may need ffmpeg_location without having access to the YoutubeDL instance
+    # See https://github.com/yt-dlp/yt-dlp/issues/2191
+    if opts.ffmpeg_location:
+        FFmpegPostProcessor._ffmpeg_location.set(opts.ffmpeg_location)
 
     with YoutubeDL(ydl_opts) as ydl:
         pre_process = opts.update_self or opts.rm_cachedir
