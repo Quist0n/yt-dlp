@@ -15,7 +15,7 @@ optdepends=('ffmpeg: for video post-processing'
             'python-mutagen: For embedding thumbnail in certain formats'
             'python-pycryptodomex: For decrypting AES-128 HLS streams and various other data'
             'python-websockets: For downloading over websocket')
-provides=("${pkgname%-git}")
+provides=("${pkgname%-git}" yt-dlp)
 conflicts=("${pkgname%-git}")
 source=(${pkgname%-git}::git+"${url}".git)
 sha256sums=('SKIP')
