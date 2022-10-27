@@ -187,9 +187,10 @@ from .bigo import BigoIE
 from .bild import BildIE
 from .bilibili import (
     BiliBiliIE,
+    BiliBiliBangumiIE,
+    BiliBiliBangumiMediaIE,
     BiliBiliSearchIE,
     BilibiliCategoryIE,
-    BiliBiliBangumiIE,
     BilibiliAudioIE,
     BilibiliAudioAlbumIE,
     BiliBiliPlayerIE,
@@ -702,7 +703,10 @@ from .hse import (
     HSEShowIE,
     HSEProductIE,
 )
-from .genericembeds import HTML5MediaEmbedIE
+from .genericembeds import (
+    HTML5MediaEmbedIE,
+    QuotedHTMLIE,
+)
 from .huajiao import HuajiaoIE
 from .huya import HuyaLiveIE
 from .huffpost import HuffPostIE
@@ -1004,6 +1008,7 @@ from .mlb import (
     MLBIE,
     MLBVideoIE,
     MLBTVIE,
+    MLBArticleIE,
 )
 from .mlssoccer import MLSSoccerIE
 from .mnet import MnetIE
@@ -1888,7 +1893,6 @@ from .tv2 import (
 )
 from .tv24ua import (
     TV24UAVideoIE,
-    TV24UAGenericPassthroughIE
 )
 from .tv2dk import (
     TV2DKIE,
@@ -1970,6 +1974,7 @@ from .twitter import (
     TwitterIE,
     TwitterAmplifyIE,
     TwitterBroadcastIE,
+    TwitterSpacesIE,
     TwitterShortenerIE,
 )
 from .udemy import (
@@ -2297,6 +2302,7 @@ from .zee5 import (
     Zee5IE,
     Zee5SeriesIE,
 )
+from .zeenews import ZeeNewsIE
 from .zhihu import ZhihuIE
 from .zingmp3 import (
     ZingMp3IE,
