@@ -65,9 +65,8 @@ class BilibiliBaseIE(InfoExtractor):
         missing_formats = format_names.keys() - set(traverse_obj(formats, (..., 'quality')))
         if missing_formats:
             self.to_screen(f'Format(s) {", ".join(format_names[i] for i in missing_formats)} are missing; '
-                           'you have to login or become premium member to download them')
+                           f'you have to login or become premium member to download them. {self._login_hint()}')
 
-        self._sort_formats(formats)
         return formats
 
     def json2srt(self, json_data):
@@ -368,7 +367,7 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
                 or '正在观看预览，大会员免费看全片' in webpage):
             self.raise_login_required('This video is for premium members only')
 
-        play_info = self._search_json(r'window\.__playinfo__\s*=\s*', webpage, 'play info', video_id)['data']
+        play_info = self._search_json(r'window\.__playinfo__\s*=', webpage, 'play info', video_id)['data']
         formats = self.extract_formats(play_info)
         if (not formats and '成为大会员抢先看' in webpage
                 and play_info.get('durl') and not play_info.get('dash')):
@@ -879,7 +878,6 @@ class BiliIntlBaseIE(InfoExtractor):
                 'filesize': aud.get('size'),
             })
 
-        self._sort_formats(formats)
         return formats
 
     def _extract_video_info(self, video_data, *, ep_id=None, aid=None):
@@ -1105,7 +1103,6 @@ class BiliLiveIE(InfoExtractor):
             })
             for fmt in traverse_obj(stream_data, ('playurl_info', 'playurl', 'stream', ..., 'format', ...)) or []:
                 formats.extend(self._parse_formats(qn, fmt))
-        self._sort_formats(formats)
 
         return {
             'id': room_id,
