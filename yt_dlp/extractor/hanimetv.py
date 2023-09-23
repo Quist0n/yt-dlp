@@ -177,7 +177,6 @@ class HanimetvBaseIE(InfoExtractor):
                     })
 
         self._remove_duplicate_formats(formats)
-        self._sort_formats(formats)
         return {
             'id': video_id,
             'formats': formats,
