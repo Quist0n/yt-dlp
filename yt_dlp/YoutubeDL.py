@@ -575,7 +575,7 @@ class YoutubeDL:
         'url', 'manifest_url', 'manifest_stream_number', 'ext', 'format', 'format_id', 'format_note',
         'width', 'height', 'aspect_ratio', 'resolution', 'dynamic_range', 'tbr', 'abr', 'acodec', 'asr', 'audio_channels',
         'vbr', 'fps', 'vcodec', 'container', 'filesize', 'filesize_approx', 'rows', 'columns',
-        'player_url', 'protocol', 'fragment_base_url', 'fragments', 'is_from_start',
+        'player_url', 'protocol', 'fragment_base_url', 'fragments', 'is_from_start', 'is_dash_periods', 'request_data',
         'preference', 'language', 'language_preference', 'quality', 'source_preference', 'cookies',
         'http_headers', 'stretched_ratio', 'no_resume', 'has_drm', 'extra_param_to_segment_url', 'hls_aes', 'downloader_options',
         'page_url', 'app', 'play_path', 'tc_url', 'flash_version', 'rtmp_live', 'rtmp_conn', 'rtmp_protocol', 'rtmp_real_time'
@@ -690,7 +690,6 @@ class YoutubeDL:
         self.params['http_headers'] = HTTPHeaderDict(std_headers, self.params.get('http_headers'))
         self._load_cookies(self.params['http_headers'].get('Cookie'))  # compat
         self.params['http_headers'].pop('Cookie', None)
-        self._request_director = self.build_request_director(_REQUEST_HANDLERS.values(), _RH_PREFERENCES)
 
         if auto_init and auto_init != 'no_verbose_header':
             self.print_debug_header()
@@ -963,7 +962,9 @@ class YoutubeDL:
 
     def close(self):
         self.save_cookies()
-        self._request_director.close()
+        if '_request_director' in self.__dict__:
+            self._request_director.close()
+            del self._request_director
 
     def trouble(self, message=None, tb=None, is_error=True):
         """Determine action to take when a download problem appears.
@@ -2226,7 +2227,7 @@ class YoutubeDL:
             selectors = []
             current_selector = None
             for type, string_, start, _, _ in tokens:
-                # ENCODING is only defined in python 3.x
+                # ENCODING is only defined in Python 3.x
                 if type == getattr(tokenize, 'ENCODING', None):
                     continue
                 elif type in [tokenize.NAME, tokenize.NUMBER]:
@@ -2649,7 +2650,8 @@ class YoutubeDL:
 
         for old_key, new_key in self._deprecated_multivalue_fields.items():
             if new_key in info_dict and old_key in info_dict:
-                self.deprecation_warning(f'Do not return {old_key!r} when {new_key!r} is present')
+                if '_version' not in info_dict:  # HACK: Do not warn when using --load-info-json
+                    self.deprecation_warning(f'Do not return {old_key!r} when {new_key!r} is present')
             elif old_value := info_dict.get(old_key):
                 info_dict[new_key] = old_value.split(', ')
             elif new_value := info_dict.get(new_key):
@@ -3576,6 +3578,8 @@ class YoutubeDL:
                     raise
                 self.report_warning(f'The info failed to download: {e}; trying with URL {webpage_url}')
                 self.download([webpage_url])
+            except ExtractorError as e:
+                self.report_error(e)
         return self._download_retcode
 
     @staticmethod
@@ -4159,6 +4163,10 @@ class YoutubeDL:
         if 'prefer-legacy-http-handler' in self.params['compat_opts']:
             director.preferences.add(lambda rh, _: 500 if rh.RH_KEY == 'Urllib' else 0)
         return director
+
+    @functools.cached_property
+    def _request_director(self):
+        return self.build_request_director(_REQUEST_HANDLERS.values(), _RH_PREFERENCES)
 
     def encode(self, s):
         if isinstance(s, bytes):
