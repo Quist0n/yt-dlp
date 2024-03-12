@@ -1,20 +1,30 @@
 pkgname=yt-dlp-hanime-git
-pkgver=r22333.dca3a5f
+pkgver=r22395.8feb989
 pkgrel=1
 pkgdesc='A youtube-dl fork with additional features and fixes (git), fork supporting hanime.tv'
 arch=(any)
 url=https://github.com/Quist0n/yt-dlp
 license=(Unlicense)
 depends=(python-certifi python python-requests)
-makedepends=(python-build python-installer python-setuptools python-wheel pandoc git)
+makedepends=(python-build python-installer python-hatchling python-setuptools python-wheel pandoc git)
 checkdepends=(python-pytest)
-optdepends=('ffmpeg: for video post-processing'
-            'rtmpdump: for rtmp streams support'
-            'atomicparsley: for embedding thumbnails into m4a files'
-            'aria2: for using aria2 as external downloader'
-            'python-mutagen: For embedding thumbnail in certain formats'
-            'python-pycryptodomex: For decrypting AES-128 HLS streams and various other data'
-            'python-websockets: For downloading over websocket')
+optdepends=(
+        'ffmpeg: for video post-processing'
+        'rtmpdump: for rtmp streams support'
+        'atomicparsley: for embedding thumbnails into m4a files'
+        'aria2: for using aria2 as external downloader'
+        'python-mutagen: for embedding thumbnail in certain formats'
+        'python-pycryptodome: for decrypting AES-128 HLS streams and various other data'
+        'python-pycryptodomex: for decrypting AES-128 HLS streams and various other data'
+        'python-websockets: for downloading over websocket'
+        'python-brotli: brotli content encoding support'
+        'python-brotlicffi: brotli content encoding support'
+        'python-xattr: for writing xattr metadata'
+        'python-pyxattr: for writing xattr metadata (alternative option)'
+        'phantomjs: for extractors with javascript code'
+        'python-secretstorage: For -cookies-from-browser to access the GNOME keyring while decrypting cookies of Chromium-based browsers'
+        )
+
 provides=("${pkgname%-git}" yt-dlp)
 conflicts=("${pkgname%-git}")
 source=(${pkgname%-git}::git+"${url}".git)
